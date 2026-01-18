@@ -39,6 +39,7 @@
 ---
 
 ## 🏗 项目结构
+```bash
 ai-app/
 ├── app/
 │   ├── agent/            # Agent 核心（Planner / Executor / Memory）
@@ -56,8 +57,8 @@ ai-app/
 ├── test_*.py             # 各模块测试脚本
 ├── requirements.txt
 └── README.md
+```
 ---
-
 ## 🛠 技术栈
 
 - **Python** 3.11
