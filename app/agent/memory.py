@@ -36,27 +36,54 @@ class ShortTermMemory:
 class LongTermMemory:
     def __init__(self, dim: int = 384):
         print("[LongTermMemory] init")
+        self.keys: List[str] = []      # 用来 embedding & search
+        self.values: List[str] = []   # 真正存的知识
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
         self.index = faiss.IndexFlatL2(dim)
-        self.texts: List[str] = []
+        print("[LongTermMemory] duplicate_threshold=0.92 (cosine similarity)")
 
-    def add(self, text: str):
-        emb = self.model.encode([text])
-        self.index.add(np.array(emb).astype("float32"))
-        self.texts.append(text)
-        print(f"[LongTermMemory] add text, total={len(self.texts)}")
+    def _cosine_sim(self, a: np.ndarray, b: np.ndarray) -> float:
+        a_norm = np.linalg.norm(a)
+        b_norm = np.linalg.norm(b)
+        if a_norm == 0 or b_norm == 0:
+            return 0.0
+        return float(np.dot(a, b) / (a_norm * b_norm))
+
+    def add(self, question: str, summary: str):
+        emb = self.model.encode([question])
+        emb = np.array(emb).astype("float32")
+
+        if self.keys:
+            D, I = self.index.search(emb, 1)
+            sim = 1 - D[0][0]  # L2 → similarity
+            print(f"[LongTermMemory] check duplicate sim={sim:.4f}")
+
+            if sim > 0.92:
+                print(
+                    "[LongTermMemory] skip write "
+                    "(semantic duplicate question)"
+                )
+                return
+
+        self.index.add(emb)
+        self.keys.append(question)
+        self.values.append(summary)
+
+        print(
+            f"[LongTermMemory] write new fact memory "
+            f"(total={len(self.values)})"
+        )
 
     def search(self, query: str, top_k: int = 3) -> List[str]:
-        if not self.texts:
+        if not self.keys:
             print("[LongTermMemory] search skipped (empty)")
             return []
 
         emb = self.model.encode([query])
-        _, idx = self.index.search(
-            np.array(emb).astype("float32"),
-            top_k
-        )
+        emb = np.array(emb).astype("float32")
 
-        results = [self.texts[i] for i in idx[0] if i < len(self.texts)]
-        print(f"[LongTermMemory] search query='{query}', hit={len(results)}")
+        _, idx = self.index.search(emb, top_k)
+
+        results = [self.values[i] for i in idx[0] if i < len(self.values)]
+        print(f"[LongTermMemory] search hit={len(results)}")
         return results

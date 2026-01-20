@@ -55,8 +55,10 @@ class Agent:
         self.short_memory.add_user_message(user_input)
         self.short_memory.add_assistant_message(answer)
 
+        print("[Agent] try write to long memory")
         self.long_memory.add(
-            f"用户问题：{user_input}；回答要点：{answer}"
+            question=user_input,
+            summary=answer
         )
 
         return answer
