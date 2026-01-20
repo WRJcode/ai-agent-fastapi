@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from app.service.agent_service import AgentManager
 
 router = APIRouter()
-agent_manager = AgentManager()
+agent_manager = AgentManager(6000)
 
 
 class ChatReq(BaseModel):
